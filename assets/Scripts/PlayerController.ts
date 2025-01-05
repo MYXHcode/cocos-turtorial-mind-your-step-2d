@@ -65,6 +65,11 @@ export class PlayerController extends Component {
     private _targetPos: Vec3 = new Vec3();
 
     /**
+     * @description 防抖延迟时间
+     */
+    private _debounceDelay: number = 0.01;
+
+    /**
      * @description 身体动画
      */
     @property(Animation)
@@ -112,26 +117,35 @@ export class PlayerController extends Component {
         this._curJumpTime = 0; // 重置开始跳跃的时间
 
         const clipName = step == 1 ? "oneStep" : "twoStep"; // 根据步数选择动画
-        const state = this.BodyAnim.getState(clipName); // 获取动画状态
-        this._jumpTime = state.duration; // 获取动画的时间
 
-        this._curJumpSpeed = (this._jumpStep * BLOCK_SIZE) / this._jumpTime; // 根据时间计算出速度
-        this.node.getPosition(this._curPos); // 获取角色当前的位置
-        Vec3.add(
-            this._targetPos,
-            this._curPos,
-            new Vec3(this._jumpStep * BLOCK_SIZE, 0, 0)
-        ); // 计算出目标位置
+        // 防抖逻辑，确保在延迟后获取动画状态
+        this.scheduleOnce(() => {
+            if (this.BodyAnim) {
+                const state = this.BodyAnim.getState(clipName); // 获取动画状态
+                if (state) {
+                    this._jumpTime = state.duration; // 获取动画的时间
 
-        // 播放动画
-        if (step === 1) {
-            // 调用 BodyAnim 的 play 方法，播放名为 "oneStep" 的动画
-            this.BodyAnim.play("oneStep");
-        } else if (step === 2) {
-            // 否则如果 step 等于 2
-            // 调用 BodyAnim 的 play 方法，播放名为 "twoStep" 的动画
-            this.BodyAnim.play("twoStep");
-        }
+                    this._curJumpSpeed =
+                        (this._jumpStep * BLOCK_SIZE) / this._jumpTime; // 根据时间计算出速度
+                    this.node.getPosition(this._curPos); // 获取角色当前的位置
+                    Vec3.add(
+                        this._targetPos,
+                        this._curPos,
+                        new Vec3(this._jumpStep * BLOCK_SIZE, 0, 0)
+                    ); // 计算出目标位置
+
+                    // 播放动画
+                    if (step === 1) {
+                        // 调用 BodyAnim 的 play 方法，播放名为 "oneStep" 的动画
+                        this.BodyAnim.play("oneStep");
+                    } else if (step === 2) {
+                        // 否则如果 step 等于 2
+                        // 调用 BodyAnim 的 play 方法，播放名为 "twoStep" 的动画
+                        this.BodyAnim.play("twoStep");
+                    }
+                }
+            }
+        }, this._debounceDelay);
     }
 
     /**
