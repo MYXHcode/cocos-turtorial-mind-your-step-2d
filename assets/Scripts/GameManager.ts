@@ -71,10 +71,10 @@ export class GameManager extends Component {
         // 生成路径数组，根据前一个块类型决定当前块类型
         for (let i = 1; i < this.roadLength; i++) {
             if (this._road[i - 1] === BlockType.BT_NONE) {
-                // 如果前一个块是BT_NONE，则当前块为BT_STONE
+                // 如果前一个块是 BT_NONE，则当前块为 BT_STONE
                 this._road.push(BlockType.BT_STONE);
             } else {
-                // 否则，随机生成0或1
+                // 否则，随机生成 0 或 1
                 this._road.push(Math.floor(Math.random() * 2));
             }
         }
@@ -85,7 +85,7 @@ export class GameManager extends Component {
 
             if (block) {
                 this.node.addChild(block);
-                // 设置块的位置，每个块之间的间隔为BLOCK_SIZE
+                // 设置块的位置，每个块之间的间隔为 BLOCK_SIZE
                 block.setPosition(j * BLOCK_SIZE, 0, 0);
             }
         }
@@ -98,7 +98,7 @@ export class GameManager extends Component {
      */
     spawnBlockByType(type: BlockType) {
         if (!this.boxPrefab) {
-            // 如果没有预制体，则返回null
+            // 如果没有预制体，则返回 null
             return null;
         }
 
@@ -107,7 +107,7 @@ export class GameManager extends Component {
         // 根据块类型生成对应的块节点
         switch (type) {
             case BlockType.BT_STONE:
-                // 如果块类型是BT_STONE，则生成boxPrefab的实例
+                // 如果块类型是 BT_STONE，则生成 boxPrefab 的实例
                 block = instantiate(this.boxPrefab);
                 break;
         }
