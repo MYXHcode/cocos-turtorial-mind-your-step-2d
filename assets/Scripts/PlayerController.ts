@@ -14,6 +14,8 @@ import {
     input,
     Input,
     Animation,
+    EventTouch,
+    Node,
 } from "cc";
 const { ccclass, property } = _decorator;
 
@@ -76,12 +78,27 @@ export class PlayerController extends Component {
     private _curMoveIndex: number = 0;
 
     /**
+     * @description 左侧触摸点
+     */
+    @property(Node)
+    leftTouch: Node = null;
+
+    /**
+     * @description 右侧触摸点
+     */
+    @property(Node)
+    rightTouch: Node = null;
+
+    /**
      * @description 开始
      * @returns void
      */
     start() {
         // 不需要在 start 方法中调用 input.on 方法，而是在 setInputActive 方法中调用 input.on 方法，这样可以更灵活地控制输入是否激活
         // input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        // 不需要在 start 方法中调用 this.leftTouch.on 和 this.rightTouch.on 方法，而是在 setInputActive 方法中调用 this.leftTouch.on 和 this.rightTouch.on 方法，这样可以更灵活地控制输入是否激活
+        // this.leftTouch.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        // this.rightTouch.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
     }
 
     /**
@@ -91,9 +108,35 @@ export class PlayerController extends Component {
      */
     setInputActive(active: boolean) {
         if (active) {
+            // 如果 active 为 true，则调用 input.on 方法，监听鼠标抬起事件
             input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+
+            // 如果 active 为 true，则调用 this.leftTouch.on 和 this.rightTouch.on 方法，监听触摸事件
+            this.leftTouch?.on(
+                Input.EventType.TOUCH_START,
+                this.onTouchStart,
+                this
+            );
+            this.rightTouch?.on(
+                Input.EventType.TOUCH_START,
+                this.onTouchStart,
+                this
+            );
         } else {
+            // 如果 active 为 false，则调用 input.off 方法，取消监听鼠标抬起事件
             input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+
+            // 如果 active 为 false，则调用 this.leftTouch.off 和 this.rightTouch.off 方法，取消监听触摸事件
+            this.leftTouch?.off(
+                Input.EventType.TOUCH_START,
+                this.onTouchStart,
+                this
+            );
+            this.rightTouch?.off(
+                Input.EventType.TOUCH_START,
+                this.onTouchStart,
+                this
+            );
         }
     }
 
@@ -121,6 +164,20 @@ export class PlayerController extends Component {
     }
 
     /**
+     * @description 触摸开始事件
+     * @param event 触摸事件
+     */
+    onTouchStart(event: EventTouch) {
+        const target = event.target as Node;
+
+        if (target?.name === "LeftTouch") {
+            this.jumpByStep(1);
+        } else if (target?.name === "RightTouch") {
+            this.jumpByStep(2);
+        }
+    }
+
+    /**
      * @description 跳跃
      * @param step 跳跃的步数 1 或者 2
      * @returns void
@@ -134,7 +191,7 @@ export class PlayerController extends Component {
         this._jumpStep = step; // 跳跃的步数 1 或者 2
         this._curJumpTime = 0; // 重置开始跳跃的时间
 
-        const clipName = step == 1 ? "oneStep" : "twoStep"; // 根据步数选择动画
+        const clipName = step === 1 ? "oneStep" : "twoStep"; // 根据步数选择动画
 
         // 检查当前对象的 BodyAnim 属性是否存在
         if (!this.BodyAnim) {
