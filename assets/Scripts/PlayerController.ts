@@ -25,6 +25,12 @@ export const BLOCK_SIZE = 40;
 @ccclass("PlayerController")
 export class PlayerController extends Component {
     /**
+     * @description 身体动画
+     */
+    @property(Animation)
+    BodyAnim: Animation = null;
+
+    /**
      * @description 是否开始跳跃
      */
     private _startJump: boolean = false;
@@ -65,24 +71,41 @@ export class PlayerController extends Component {
     private _targetPos: Vec3 = new Vec3();
 
     /**
-     * @description 身体动画
+     * @description 当前移动的索引
      */
-    @property(Animation)
-    BodyAnim: Animation = null;
+    private _curMoveIndex: number = 0;
 
     /**
      * @description 开始
      * @returns void
      */
     start() {
-        input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        // 不需要在 start 方法中调用 input.on 方法，而是在 setInputActive 方法中调用 input.on 方法，这样可以更灵活地控制输入是否激活
+        // input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+    }
+
+    /**
+     * @description 设置输入是否激活
+     * @param active 是否激活
+     * @returns void
+     */
+    setInputActive(active: boolean) {
+        if (active) {
+            input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        } else {
+            input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        }
     }
 
     /**
      * @description 重置
      * @returns void
      */
-    reset() {}
+    reset() {
+        this._curMoveIndex = 0; // 重置当前移动的索引
+        this.node.getPosition(this._curPos); // 获取当前的位置
+        this._targetPos.set(0, 0, 0); // 重置目标位置
+    }
 
     /**
      * @description 鼠标抬起事件
@@ -139,6 +162,16 @@ export class PlayerController extends Component {
             // 调用 BodyAnim 的 play 方法，播放名为 "twoStep" 的动画
             this.BodyAnim.play("twoStep");
         }
+
+        this._curMoveIndex += step; // 更新当前移动的索引
+    }
+
+    /**
+     * @description 跳跃结束事件
+     * @returns void
+     */
+    onOnceJumpEnd() {
+        this.node.emit("JumpEnd", this._curMoveIndex); // 触发跳跃结束事件
     }
 
     /**
@@ -151,11 +184,12 @@ export class PlayerController extends Component {
             this._curJumpTime += deltaTime; // 累计总的跳跃时间
             if (this._curJumpTime > this._jumpTime) {
                 // 当跳跃时间是否结束
-                // end
+                // 如果结束，强制位置到终点
                 this.node.setPosition(this._targetPos); // 强制位置到终点
                 this._startJump = false; // 清理跳跃标记
+                this.onOnceJumpEnd(); // 调用跳跃结束事件
             } else {
-                // tween
+                // 没有结束，根据速度和时间计算位移
                 this.node.getPosition(this._curPos);
                 this._deltaPos.x = this._curJumpSpeed * deltaTime; //每一帧根据速度和时间计算位移
                 Vec3.add(this._curPos, this._curPos, this._deltaPos); // 应用这个位移

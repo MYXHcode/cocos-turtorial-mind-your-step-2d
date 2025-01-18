@@ -10,11 +10,14 @@ import {
     _decorator,
     CCInteger,
     Component,
-    Prefab,
-    Node,
     instantiate,
+    Label,
+    math,
+    Node,
+    Prefab,
+    Vec3,
 } from "cc";
-import { BLOCK_SIZE } from "./PlayerController";
+import { BLOCK_SIZE, PlayerController } from "./PlayerController";
 const { ccclass, property } = _decorator;
 
 /**
@@ -30,6 +33,26 @@ enum BlockType {
      * @description 石头
      */
     BT_STONE,
+}
+
+/**
+ * @description 游戏状态
+ */
+enum GameState {
+    /**
+     * @description 初始化
+     */
+    GS_INIT,
+
+    /**
+     * @description 游戏中
+     */
+    GS_PLAYING,
+
+    /**
+     * @description 结束
+     */
+    GS_END,
 }
 
 @ccclass("GameManager")
@@ -51,8 +74,86 @@ export class GameManager extends Component {
      */
     private _road: BlockType[] = [];
 
+    /**
+     * @description 开始的 UI
+     */
+    @property({ type: Node })
+    public startMenu: Node | null = null;
+
+    /**
+     * @description 角色控制器
+     */
+    @property({ type: PlayerController })
+    public playerCtrl: PlayerController | null = null;
+
+    /**
+     * @description 计步器
+     */
+    @property({ type: Label })
+    public stepsLabel: Label | null = null;
+
+    /**
+     * @description 开始
+     * @returns void
+     */
     start() {
+        this.setCurState(GameState.GS_INIT); // 第一初始化要在 start 里面调用
+        this.playerCtrl?.node.on("JumpEnd", this.onPlayerJumpEnd, this); // 监听角色跳跃结束事件
+    }
+
+    /**
+     * @description 初始化
+     * @returns void
+     */
+    init() {
+        // 显示游戏的 UI
+        if (this.startMenu) {
+            this.startMenu.active = true;
+        }
+
+        // 初始化地图
         this.generateRoad();
+
+        // 将角色放回到初始点
+        if (this.playerCtrl) {
+            this.playerCtrl.setInputActive(false);
+            this.playerCtrl.node.setPosition(Vec3.ZERO);
+            this.playerCtrl.reset();
+        }
+    }
+
+    /**
+     * @description 设置当前状态
+     * @param value 游戏状态
+     * @returns void
+     */
+    setCurState(value: GameState) {
+        switch (value) {
+            case GameState.GS_INIT:
+                this.init();
+                break;
+            case GameState.GS_PLAYING:
+                // 隐藏 StartMenu
+                if (this.startMenu) {
+                    this.startMenu.active = false;
+                }
+
+                // 重设计步器的数值
+                if (this.stepsLabel) {
+                    this.stepsLabel.string = "0"; // 将步数重置为 0
+                }
+
+                // 启用用户输入
+                setTimeout(() => {
+                    //直接设置 active 会直接开始监听鼠标事件，做了一下延迟处理
+                    if (this.playerCtrl) {
+                        this.playerCtrl.setInputActive(true);
+                    }
+                }, 0.1);
+                break;
+            case GameState.GS_END:
+                break;
+        }
     }
 
     /**
@@ -81,7 +182,7 @@ export class GameManager extends Component {
 
         // 根据路径数组生成对应的块并添加到当前节点下
         for (let j = 0; j < this._road.length; j++) {
-            let block: Node | null = this.spawnBlockByType(this._road[j]);
+            let block: Node | null = this.spawnBlockByType(this._road[j]); // 根据块类型生成块节点
 
             if (block) {
                 this.node.addChild(block);
@@ -115,5 +216,45 @@ export class GameManager extends Component {
         return block;
     }
 
-    update(deltaTime: number) {}
+    /**
+     * @description 开始按钮点击
+     * @returns void
+     */
+    onStartButtonClicked() {
+        this.setCurState(GameState.GS_PLAYING);
+    }
+
+    /**
+     * @description 检查结果
+     * @param moveIndex 移动的索引
+     */
+    checkResult(moveIndex: number) {
+        if (moveIndex < this.roadLength) {
+            if (this._road[moveIndex] == BlockType.BT_NONE) {
+                //跳到了空方块上
+                this.setCurState(GameState.GS_INIT);
+            }
+        } else {
+            // 跳过了最大长度
+            this.setCurState(GameState.GS_INIT);
+        }
+    }
+
+    /**
+     * @description 角色跳跃结束事件
+     * @param moveIndex 移动的索引
+     * @returns void
+     */
+    onPlayerJumpEnd(moveIndex: number) {
+        // 检查 stepsLabel 是否存在，如果存在则更新其显示内容
+        if (this.stepsLabel) {
+            // 更新 stepsLabel 的显示内容，显示当前移动的索引，如果索引超过道路长度，则显示道路长度
+            this.stepsLabel.string =
+                "" +
+                (moveIndex >= this.roadLength ? this.roadLength : moveIndex);
+        }
+
+        // 调用 checkResult 方法，传入当前移动的索引，检查游戏结果
+        this.checkResult(moveIndex);
+    }
 }
