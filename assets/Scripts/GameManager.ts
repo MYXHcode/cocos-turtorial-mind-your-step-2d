@@ -12,7 +12,6 @@ import {
     Component,
     instantiate,
     Label,
-    math,
     Node,
     Prefab,
     Vec3,
@@ -27,12 +26,12 @@ enum BlockType {
     /**
      * @description 无
      */
-    BT_NONE,
+    BT_NONE = "None",
 
     /**
      * @description 石头
      */
-    BT_STONE,
+    BT_STONE = "Stone",
 }
 
 /**
@@ -42,17 +41,17 @@ enum GameState {
     /**
      * @description 初始化
      */
-    GS_INIT,
+    GS_INIT = "Init",
 
     /**
      * @description 游戏中
      */
-    GS_PLAYING,
+    GS_PLAYING = "Playing",
 
     /**
      * @description 结束
      */
-    GS_END,
+    GS_END = "End",
 }
 
 @ccclass("GameManager")
@@ -97,8 +96,11 @@ export class GameManager extends Component {
      * @returns void
      */
     start() {
-        this.setCurState(GameState.GS_INIT); // 第一初始化要在 start 里面调用
-        this.playerCtrl?.node.on("JumpEnd", this.onPlayerJumpEnd, this); // 监听角色跳跃结束事件
+        // 第一个初始化要在 start 里面调用
+        this.setCurState(GameState.GS_INIT);
+
+        // 监听角色跳跃结束事件
+        this.playerCtrl?.node.on("JumpEnd", this.onPlayerJumpEnd, this);
     }
 
     /**
@@ -116,7 +118,8 @@ export class GameManager extends Component {
 
         // 将角色放回到初始点
         if (this.playerCtrl) {
-            this.playerCtrl.setInputActive(false);
+            // 设置输入是否激活, 并传入输入类型
+            this.playerCtrl.setInputActive(false, this.playerCtrl.inputType);
             this.playerCtrl.node.setPosition(Vec3.ZERO);
             this.playerCtrl.reset();
         }
@@ -140,14 +143,19 @@ export class GameManager extends Component {
 
                 // 重设计步器的数值
                 if (this.stepsLabel) {
-                    this.stepsLabel.string = "0"; // 将步数重置为 0
+                    // 将步数重置为 0
+                    this.stepsLabel.string = "0";
                 }
 
                 // 启用用户输入
                 setTimeout(() => {
                     //直接设置 active 会直接开始监听鼠标事件，做了一下延迟处理
+                    // 设置输入是否激活, 并传入输入类型
                     if (this.playerCtrl) {
-                        this.playerCtrl.setInputActive(true);
+                        this.playerCtrl.setInputActive(
+                            true,
+                            this.playerCtrl.inputType
+                        );
                     }
                 }, 0.1);
                 break;
@@ -166,7 +174,7 @@ export class GameManager extends Component {
 
         // 初始化路径数组
         this._road = [];
-        // startPos
+        // 生成第一个块，默认是 BT_STONE
         this._road.push(BlockType.BT_STONE);
 
         // 生成路径数组，根据前一个块类型决定当前块类型
@@ -176,13 +184,18 @@ export class GameManager extends Component {
                 this._road.push(BlockType.BT_STONE);
             } else {
                 // 否则，随机生成 0 或 1
-                this._road.push(Math.floor(Math.random() * 2));
+                this._road.push(
+                    Math.floor(Math.random() * 2) === 0
+                        ? BlockType.BT_NONE
+                        : BlockType.BT_STONE
+                );
             }
         }
 
         // 根据路径数组生成对应的块并添加到当前节点下
         for (let j = 0; j < this._road.length; j++) {
-            let block: Node | null = this.spawnBlockByType(this._road[j]); // 根据块类型生成块节点
+            // 根据块类型生成块节点
+            let block: Node | null = this.spawnBlockByType(this._road[j]);
 
             if (block) {
                 this.node.addChild(block);
