@@ -174,6 +174,7 @@ export class GameManager extends Component {
 
         // 初始化路径数组
         this._road = [];
+
         // 生成第一个块，默认是 BT_STONE
         this._road.push(BlockType.BT_STONE);
 
