@@ -160,12 +160,30 @@ export class PlayerController extends Component {
                 input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
             } else if (inputType === InputType.TOUCH) {
                 // 添加触摸事件监听
-                input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+                      this.leftTouch.on(
+                          Input.EventType.TOUCH_START,
+                          this.onTouchStart,
+                          this
+                      );
+                      this.rightTouch.on(
+                          Input.EventType.TOUCH_START,
+                          this.onTouchStart,
+                          this
+                      );
             }
         } else {
             // 移除事件监听
             input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
-            input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+             this.leftTouch.off(
+                 Input.EventType.TOUCH_START,
+                 this.onTouchStart,
+                 this
+             );
+             this.rightTouch.off(
+                 Input.EventType.TOUCH_START,
+                 this.onTouchStart,
+                 this
+             );
         }
     }
 
@@ -270,7 +288,8 @@ export class PlayerController extends Component {
             this.BodyAnim.play("twoStep");
         }
 
-        this._curMoveIndex += step; // 更新当前移动的索引
+        // 更新当前移动的索引
+        this._curMoveIndex += step;
     }
 
     /**
